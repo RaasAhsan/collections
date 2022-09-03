@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "practice"
+name = "rastd"
 version = "0.1.0"

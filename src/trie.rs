@@ -137,6 +137,7 @@ pub struct Iter<'a, K, V> {
     key: &'a Vec<K>,
     value: Option<&'a V>,
     children: std::collections::hash_map::Iter<'a, K, HashTrie<K, V>>,
+    // Forms a stack leading to the parent
     parent: Option<Box<Iter<'a, K, V>>>,
 }
 
