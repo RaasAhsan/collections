@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct HashTrie<K, V> {
+    key: Vec<K>,
     value: Option<V>,
     children: HashMap<K, HashTrie<K, V>>,
 }
@@ -10,6 +11,7 @@ pub struct HashTrie<K, V> {
 impl<K, V> HashTrie<K, V> {
     pub fn new() -> Self {
         HashTrie {
+            key: vec![],
             value: None,
             children: HashMap::new(),
         }
@@ -26,6 +28,9 @@ where
                 Some(child) => child.insert(rest, value),
                 None => {
                     let mut child = HashTrie::<K, V>::new();
+                    let mut child_key = self.key.clone();
+                    child_key.push(first.clone());
+                    child.key = child_key;
                     let ret = child.insert(rest, value);
                     self.children.insert(first.clone(), child);
                     ret
@@ -66,6 +71,14 @@ where
         }
     }
 
+    pub fn iter<'a>(&'a self) -> Iter<'a, K, V> {
+        Iter {
+            trie: self,
+            children: self.children.keys(),
+            parent: None,
+        }
+    }
+
     pub fn keys_with_prefix<P: AsRef<[K]>>(&mut self, key: P) -> Vec<Vec<K>> {
         self.entries_with_prefix(key)
             .into_iter()
@@ -82,40 +95,45 @@ where
 
     pub fn entries_with_prefix<P: AsRef<[K]>>(&mut self, key: P) -> Vec<(Vec<K>, &V)> {
         let mut entries = vec![];
-        self.entries_with_prefix_internal(key.as_ref(), vec![], &mut entries);
+        self.entries_with_prefix_internal(key.as_ref(), &mut entries);
         entries
     }
 
-    fn entries_with_prefix_internal<'a>(
-        &'a self,
-        key: &[K],
-        prefix: Vec<K>,
-        acc: &mut Vec<(Vec<K>, &'a V)>,
-    ) {
+    fn entries_with_prefix_internal<'a>(&'a self, key: &[K], acc: &mut Vec<(Vec<K>, &'a V)>) {
         match key {
             [first, rest @ ..] => match self.children.get(first) {
                 Some(child) => {
                     if let Some(value) = &self.value {
-                        acc.push((prefix.clone(), value));
+                        acc.push((self.key.clone(), value));
                     }
-                    let mut next_prefix = prefix.clone();
-                    next_prefix.push(first.clone());
-                    child.entries_with_prefix_internal(rest, next_prefix, acc);
+                    child.entries_with_prefix_internal(rest, acc);
                 }
                 None => {}
             },
             [] => {
                 if let Some(value) = &self.value {
-                    acc.push((prefix.clone(), value));
+                    acc.push((self.key.clone(), value));
                 }
                 for (key, child) in self.children.iter() {
-                    let mut next_prefix = prefix.clone();
-                    next_prefix.push(key.clone());
-                    child.entries_with_prefix_internal(&[], next_prefix, acc);
+                    child.entries_with_prefix_internal(&[], acc);
                 }
             }
             _ => {}
         }
+    }
+}
+
+pub struct Iter<'a, K, V> {
+    trie: &'a HashTrie<K, V>,
+    children: std::collections::hash_map::Keys<'a, K, HashTrie<K, V>>,
+    parent: Option<Box<Iter<'a, K, V>>>,
+}
+
+impl<'a, K, V> Iterator for Iter<'a, K, V> {
+    type Item = (&'a Vec<K>, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        todo!()
     }
 }
 
