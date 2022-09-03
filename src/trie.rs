@@ -67,11 +67,17 @@ where
     }
 
     pub fn keys_with_prefix<P: AsRef<[K]>>(&mut self, key: P) -> Vec<Vec<K>> {
-        self.entries_with_prefix(key).into_iter().map(|e| e.0).collect()
+        self.entries_with_prefix(key)
+            .into_iter()
+            .map(|e| e.0)
+            .collect()
     }
 
     pub fn values_with_prefix<P: AsRef<[K]>>(&mut self, key: P) -> Vec<&V> {
-        self.entries_with_prefix(key).into_iter().map(|e| e.1).collect()
+        self.entries_with_prefix(key)
+            .into_iter()
+            .map(|e| e.1)
+            .collect()
     }
 
     pub fn entries_with_prefix<P: AsRef<[K]>>(&mut self, key: P) -> Vec<(Vec<K>, &V)> {
@@ -80,7 +86,12 @@ where
         entries
     }
 
-    fn entries_with_prefix_internal<'a>(&'a self, key: &[K], prefix: Vec<K>, acc: &mut Vec<(Vec<K>, &'a V)>) {
+    fn entries_with_prefix_internal<'a>(
+        &'a self,
+        key: &[K],
+        prefix: Vec<K>,
+        acc: &mut Vec<(Vec<K>, &'a V)>,
+    ) {
         match key {
             [first, rest @ ..] => match self.children.get(first) {
                 Some(child) => {
@@ -91,7 +102,7 @@ where
                     next_prefix.push(first.clone());
                     child.entries_with_prefix_internal(rest, next_prefix, acc);
                 }
-                None => {},
+                None => {}
             },
             [] => {
                 if let Some(value) = &self.value {
@@ -103,10 +114,9 @@ where
                     child.entries_with_prefix_internal(&[], next_prefix, acc);
                 }
             }
-            _ => {},
+            _ => {}
         }
     }
-
 }
 
 #[cfg(test)]
