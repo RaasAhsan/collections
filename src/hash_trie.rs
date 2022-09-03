@@ -72,6 +72,9 @@ where
         }
     }
 
+    /// This iterator provides only one ordering guarantee:
+    /// Given A and B are the keys of two entries in the trie,
+    /// A appears strictly before B if and only if A is a strict prefix of B.
     pub fn iter<'a>(&'a self) -> Iter<'a, K, V> {
         Iter {
             key: &self.key,
@@ -138,7 +141,7 @@ pub struct Iter<'a, K, V> {
     key: &'a Vec<K>,
     value: Option<&'a V>,
     children: std::collections::hash_map::Iter<'a, K, HashTrie<K, V>>,
-    // Forms a stack leading to the parent
+    // Forms a stack leading to the root of the trie
     parent: Option<Box<Iter<'a, K, V>>>,
 }
 

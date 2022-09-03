@@ -1,4 +1,4 @@
-use rastd::trie::HashTrie;
+use rastd::hash_trie::HashTrie;
 
 fn main() {
     let mut trie = HashTrie::new();
