@@ -16,6 +16,12 @@ impl<A> AVLTree<A> {
     }
 }
 
+impl<A> Default for AVLTree<A> {
+    fn default() -> Self {
+        AVLTree::Nil
+    }
+}
+
 impl<A> AVLTree<A>
 where
     A: Ord,
@@ -49,6 +55,41 @@ where
         }
     }
 
+    pub fn is_node(&self) -> bool {
+        match self {
+            AVLTree::Node {
+                value: _,
+                left: _,
+                right: _,
+            } => true,
+            AVLTree::Nil => false,
+        }
+    }
+
+    pub fn remove(&mut self, a: A) -> bool {
+        match self {
+            AVLTree::Node { value, left, right } => {
+                match a.cmp(value) {
+                    Ordering::Less => left.remove(a),
+                    Ordering::Equal => {
+                        match (left.is_node(), right.is_node()) {
+                            (true, true) => {
+                                // Either take the leftmost child on the right subtree,
+                                // or the rightmost child on the left subtree
+                            }
+                            (true, false) => *self = std::mem::take(left),
+                            (false, true) => *self = std::mem::take(right),
+                            (false, false) => *self = AVLTree::Nil,
+                        }
+                        true
+                    }
+                    Ordering::Greater => right.remove(a),
+                }
+            }
+            AVLTree::Nil => false,
+        }
+    }
+
     pub fn height(&self) -> usize {
         match self {
             AVLTree::Node {
@@ -69,6 +110,24 @@ where
             } => (right.height() as i16) - (left.height() as i16),
             AVLTree::Nil => 0,
         }
+    }
+
+    /// Returns an iterator that traverses the keys of the tree in ascending order
+    pub fn iter<'a>(&self) -> Iter<'a, A> {
+        todo!()
+    }
+}
+
+#[derive(Debug)]
+pub struct Iter<'a, A> {
+    tree: &'a AVLTree<A>,
+}
+
+impl<'a, A> Iterator for Iter<'a, A> {
+    type Item = &'a A;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        todo!()
     }
 }
 
