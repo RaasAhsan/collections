@@ -48,6 +48,28 @@ where
             }
         }
     }
+
+    pub fn height(&self) -> usize {
+        match self {
+            AVLTree::Node {
+                value: _,
+                left,
+                right,
+            } => std::cmp::max(left.height(), right.height()),
+            AVLTree::Nil => 0,
+        }
+    }
+
+    pub fn balance(&self) -> i16 {
+        match self {
+            AVLTree::Node {
+                value: _,
+                left,
+                right,
+            } => (right.height() as i16) - (left.height() as i16),
+            AVLTree::Nil => 0,
+        }
+    }
 }
 
 #[cfg(test)]
