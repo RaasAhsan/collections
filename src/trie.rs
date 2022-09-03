@@ -89,6 +89,7 @@ where
         Values { iter: self.iter() }
     }
 
+    // TODO: convert to an iterator
     pub fn keys_with_prefix<P: AsRef<[K]>>(&mut self, key: P) -> Vec<Vec<K>> {
         self.entries_with_prefix(key)
             .into_iter()
