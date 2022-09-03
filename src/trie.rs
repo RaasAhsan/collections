@@ -74,8 +74,9 @@ where
     pub fn iter<'a>(&'a self) -> Iter<'a, K, V> {
         Iter {
             trie: self,
-            children: self.children.keys(),
+            children: self.children.iter(),
             parent: None,
+            checked: false,
         }
     }
 
@@ -125,15 +126,43 @@ where
 
 pub struct Iter<'a, K, V> {
     trie: &'a HashTrie<K, V>,
-    children: std::collections::hash_map::Keys<'a, K, HashTrie<K, V>>,
+    children: std::collections::hash_map::Iter<'a, K, HashTrie<K, V>>,
     parent: Option<Box<Iter<'a, K, V>>>,
+    checked: bool,
 }
 
-impl<'a, K, V> Iterator for Iter<'a, K, V> {
+impl<'a, K, V> Iterator for Iter<'a, K, V>
+where
+    K: Eq + Hash + Clone,
+{
     type Item = (&'a Vec<K>, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        if !self.checked {
+            match &self.trie.value {
+                Some(v) => {
+                    self.checked = true;
+                    return Some((&self.trie.key, v));
+                }
+                None => {}
+            }
+        }
+
+        match self.children.next() {
+            Some((_, child)) => {
+                let mut parent = child.iter();
+                std::mem::swap(&mut parent, self);
+                self.parent = Some(Box::new(parent));
+                self.next()
+            }
+            None => match self.parent.take() {
+                Some(mut p) => {
+                    std::mem::swap(p.as_mut(), self);
+                    self.next()
+                }
+                None => None,
+            },
+        }
     }
 }
 
@@ -187,6 +216,18 @@ mod test {
         trie.insert("foobar", 4);
         trie.remove("foobar");
         assert_eq!(trie.get("foo"), Some(&3));
+    }
+
+    #[test]
+    fn trie_iterator() {
+        let mut trie = HashTrie::new();
+        trie.insert("foo", 3);
+        trie.insert("foobar", 4);
+
+        let mut iter = trie.iter();
+        assert_eq!(iter.next(), Some((&"foo".to_string().into_bytes(), &3)));
+        assert_eq!(iter.next(), Some((&"foobar".to_string().into_bytes(), &4)));
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
