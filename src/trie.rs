@@ -1,6 +1,7 @@
 use core::hash::Hash;
 use std::collections::HashMap;
 
+/// A trie that indexes keys by the hash of its constituent elements.
 #[derive(Debug, Clone)]
 pub struct HashTrie<K, V> {
     key: Vec<K>,
@@ -73,11 +74,19 @@ where
 
     pub fn iter<'a>(&'a self) -> Iter<'a, K, V> {
         Iter {
-            trie: self,
+            key: &self.key,
+            value: self.value.as_ref(),
             children: self.children.iter(),
             parent: None,
-            checked: false,
         }
+    }
+
+    pub fn keys<'a>(&'a self) -> Keys<'a, K, V> {
+        Keys { iter: self.iter() }
+    }
+
+    pub fn values<'a>(&'a self) -> Values<'a, K, V> {
+        Values { iter: self.iter() }
     }
 
     pub fn keys_with_prefix<P: AsRef<[K]>>(&mut self, key: P) -> Vec<Vec<K>> {
@@ -125,10 +134,10 @@ where
 }
 
 pub struct Iter<'a, K, V> {
-    trie: &'a HashTrie<K, V>,
+    key: &'a Vec<K>,
+    value: Option<&'a V>,
     children: std::collections::hash_map::Iter<'a, K, HashTrie<K, V>>,
     parent: Option<Box<Iter<'a, K, V>>>,
-    checked: bool,
 }
 
 impl<'a, K, V> Iterator for Iter<'a, K, V>
@@ -138,31 +147,54 @@ where
     type Item = (&'a Vec<K>, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.checked {
-            match &self.trie.value {
-                Some(v) => {
-                    self.checked = true;
-                    return Some((&self.trie.key, v));
-                }
-                None => {}
-            }
-        }
-
-        match self.children.next() {
-            Some((_, child)) => {
-                let mut parent = child.iter();
-                std::mem::swap(&mut parent, self);
-                self.parent = Some(Box::new(parent));
-                self.next()
-            }
-            None => match self.parent.take() {
-                Some(mut p) => {
-                    std::mem::swap(p.as_mut(), self);
+        match self.value.take() {
+            Some(v) => Some((&self.key, v)),
+            None => match self.children.next() {
+                Some((_, child)) => {
+                    let mut parent = child.iter();
+                    std::mem::swap(&mut parent, self);
+                    self.parent = Some(Box::new(parent));
                     self.next()
                 }
-                None => None,
+                None => match self.parent.take() {
+                    Some(mut p) => {
+                        std::mem::swap(p.as_mut(), self);
+                        self.next()
+                    }
+                    None => None,
+                },
             },
         }
+    }
+}
+
+pub struct Keys<'a, K, V> {
+    iter: Iter<'a, K, V>,
+}
+
+impl<'a, K, V> Iterator for Keys<'a, K, V>
+where
+    K: Eq + Hash + Clone,
+{
+    type Item = &'a Vec<K>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|x| x.0)
+    }
+}
+
+pub struct Values<'a, K, V> {
+    iter: Iter<'a, K, V>,
+}
+
+impl<'a, K, V> Iterator for Values<'a, K, V>
+where
+    K: Eq + Hash + Clone,
+{
+    type Item = &'a V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|x| x.1)
     }
 }
 
