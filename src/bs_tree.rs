@@ -151,6 +151,21 @@ pub struct Iter<'a, A> {
     parent: Option<Box<Iter<'a, A>>>,
 }
 
+impl<'a, A> Iter<'a, A>
+where
+    A: Ord,
+{
+    fn continue_to_parent(&mut self) -> Option<&'a A> {
+        match self.parent.take() {
+            Some(mut p) => {
+                std::mem::swap(self, &mut p);
+                self.next()
+            }
+            None => None,
+        }
+    }
+}
+
 #[derive(Debug)]
 enum IterState {
     Left,
@@ -181,21 +196,9 @@ where
                     self.parent = Some(Box::new(new_parent));
                     Some(value)
                 }
-                IterState::Right => match self.parent.take() {
-                    Some(mut p) => {
-                        std::mem::swap(self, &mut p);
-                        self.next()
-                    }
-                    None => None,
-                },
+                IterState::Right => self.continue_to_parent(),
             },
-            BSTree::Nil => match self.parent.take() {
-                Some(mut p) => {
-                    std::mem::swap(self, &mut p);
-                    self.next()
-                }
-                None => None,
-            },
+            BSTree::Nil => self.continue_to_parent(),
         }
     }
 }
