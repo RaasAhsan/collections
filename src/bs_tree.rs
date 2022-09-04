@@ -111,6 +111,17 @@ where
         }
     }
 
+    pub fn size(&self) -> usize {
+        match self {
+            BSTree::Node {
+                value: _,
+                left,
+                right,
+            } => left.size() + right.size() + 1,
+            BSTree::Nil => 0,
+        }
+    }
+
     pub fn balance(&self) -> i16 {
         match self {
             BSTree::Node {
@@ -205,6 +216,8 @@ where
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
+
     use super::BSTree;
     use quickcheck::quickcheck;
 
@@ -239,6 +252,16 @@ mod test {
     }
 
     #[test]
+    fn tree_size() {
+        let mut tree = BSTree::new();
+        tree.insert(5);
+        tree.insert(4);
+        tree.insert(3);
+        tree.insert(2);
+        assert_eq!(tree.size(), 4);
+    }
+
+    #[test]
     fn tree_iteration() {
         let mut tree = BSTree::new();
         tree.insert(4);
@@ -258,24 +281,35 @@ mod test {
     }
 
     #[test]
-    fn prop_ascending_order() {
+    fn prop_iter_ascending_order() {
         fn p(input: Vec<i32>) -> bool {
             let mut tree = BSTree::new();
             for i in input {
                 tree.insert(i);
             }
-            let mut sorted = true;
             let mut last: i32 = i32::MIN;
             for i in tree.iter() {
-                if last <= *i { // <= because i32::MIN may be an element.
+                if last <= *i {
                     last = *i;
                 } else {
-                    sorted = false;
-                    break;
+                    return false;
                 }
             }
-            sorted
+            true
         }
         quickcheck(p as fn(Vec<i32>) -> bool)
+    }
+
+    #[test]
+    fn prop_tree_size() {
+        // HashSet because the tree only stores unique values
+        fn p(input: HashSet<i32>) -> bool {
+            let mut tree = BSTree::new();
+            for i in input.iter() {
+                tree.insert(i);
+            }
+            input.len() == tree.size()
+        }
+        quickcheck(p as fn(HashSet<i32>) -> bool)
     }
 }
