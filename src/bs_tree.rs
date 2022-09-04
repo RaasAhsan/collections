@@ -148,6 +148,17 @@ mod test {
     fn tree_search() {
         let mut tree = BSTree::new();
         tree.insert(3);
+        tree.insert(4);
         assert!(tree.search(3).is_some());
+        assert!(tree.search(4).is_some());
+    }
+
+    #[test]
+    fn tree_removal() {
+        let mut tree = BSTree::new();
+        tree.insert(3);
+        tree.insert(4);
+        assert!(tree.search(3).is_some());
+        assert_eq!(tree.remove(4), true);
     }
 }
