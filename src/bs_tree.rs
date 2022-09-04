@@ -206,6 +206,7 @@ where
 #[cfg(test)]
 mod test {
     use super::BSTree;
+    use quickcheck::quickcheck;
 
     #[test]
     fn tree_search() {
@@ -254,5 +255,27 @@ mod test {
         assert_eq!(iter.next(), Some(&4));
         assert_eq!(iter.next(), Some(&5));
         assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn prop_ascending_order() {
+        fn p(input: Vec<i32>) -> bool {
+            let mut tree = BSTree::new();
+            for i in input {
+                tree.insert(i);
+            }
+            let mut sorted = true;
+            let mut last: i32 = i32::MIN;
+            for i in tree.iter() {
+                if last <= *i { // <= because i32::MIN may be an element.
+                    last = *i;
+                } else {
+                    sorted = false;
+                    break;
+                }
+            }
+            sorted
+        }
+        quickcheck(p as fn(Vec<i32>) -> bool)
     }
 }
