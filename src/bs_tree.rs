@@ -105,7 +105,7 @@ where
                 value: _,
                 left,
                 right,
-            } => std::cmp::max(left.height(), right.height()),
+            } => std::cmp::max(left.height(), right.height()) + 1,
             BSTree::Nil => 0,
         }
     }
@@ -160,5 +160,17 @@ mod test {
         tree.insert(4);
         assert!(tree.search(3).is_some());
         assert_eq!(tree.remove(4), true);
+    }
+
+    #[test]
+    fn tree_height() {
+        let mut tree = BSTree::new();
+        tree.insert(5);
+        tree.insert(4);
+        tree.insert(3);
+        tree.insert(2);
+        tree.insert(1);
+        tree.insert(0);
+        assert_eq!(tree.height(), 6);
     }
 }
