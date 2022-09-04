@@ -250,5 +250,6 @@ mod test {
         assert_eq!(iter.next(), Some(&3));
         assert_eq!(iter.next(), Some(&4));
         assert_eq!(iter.next(), Some(&5));
+        assert_eq!(iter.next(), None);
     }
 }
