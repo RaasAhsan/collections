@@ -68,25 +68,34 @@ where
 
     pub fn remove(&mut self, a: A) -> bool {
         match self {
-            AVLTree::Node { value, left, right } => {
-                match a.cmp(value) {
-                    Ordering::Less => left.remove(a),
-                    Ordering::Equal => {
-                        match (left.is_node(), right.is_node()) {
-                            (true, true) => {
-                                // Either take the leftmost child on the right subtree,
-                                // or the rightmost child on the left subtree
-                            }
-                            (true, false) => *self = std::mem::take(left),
-                            (false, true) => *self = std::mem::take(right),
-                            (false, false) => *self = AVLTree::Nil,
-                        }
-                        true
+            AVLTree::Node { value, left, right } => match a.cmp(value) {
+                Ordering::Less => left.remove(a),
+                Ordering::Equal => {
+                    match (left.is_node(), right.is_node()) {
+                        (true, true) => right.swap_leftmost(value),
+                        (true, false) => *self = std::mem::take(left),
+                        (false, true) => *self = std::mem::take(right),
+                        (false, false) => *self = AVLTree::Nil,
                     }
-                    Ordering::Greater => right.remove(a),
+                    true
+                }
+                Ordering::Greater => right.remove(a),
+            },
+            AVLTree::Nil => false,
+        }
+    }
+
+    fn swap_leftmost(&mut self, to: &mut A) {
+        match self {
+            AVLTree::Node { value, left, right } => {
+                if !left.is_node() {
+                    std::mem::swap(value, to);
+                    *self = std::mem::take(right);
+                } else {
+                    left.swap_leftmost(to);
                 }
             }
-            AVLTree::Nil => false,
+            AVLTree::Nil => {}
         }
     }
 
