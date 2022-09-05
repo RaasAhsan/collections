@@ -76,7 +76,10 @@ where
                         (true, true) => right.swap_leftmost(value), // Swap the current node with its immediate successor
                         (true, false) => *self = std::mem::take(left), // Promote the left subtree
                         (false, true) => *self = std::mem::take(right), // Promote the right subtree
-                        (false, false) => *self = BSTree::Nil,      // Clear out the current node
+                        (false, false) => {
+                            // Clear out the current node
+                            std::mem::take(self);
+                        }
                     }
                     true
                 }
