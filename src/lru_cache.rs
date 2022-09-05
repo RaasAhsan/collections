@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fmt::Debug, hash::Hash, rc::Rc};
 
 #[derive(Debug)]
 pub struct LRUCache<K, V> {
@@ -38,7 +38,7 @@ where
             self.len += 1;
         } else {
             let removed = self.list.pop_tail().unwrap();
-            self.recent.remove(&k);
+            self.recent.remove(&removed);
             self.entries.remove(&removed);
         }
 
@@ -49,10 +49,12 @@ where
     }
 
     pub fn get(&mut self, k: &K) -> Option<&V> {
-        let handle = self.recent.remove(k).unwrap();
-        self.list.remove(handle);
-        let handle = self.list.push_head(k.clone());
-        self.recent.insert(k.clone(), handle);
+        let handle = self.recent.remove(k);
+        if let Some(handle) = handle {
+            self.list.remove(handle);
+        }
+        let new_handle = self.list.push_head(k.clone());
+        self.recent.insert(k.clone(), new_handle);
         self.entries.get(&k)
     }
 
@@ -112,15 +114,13 @@ where
         let next = curr.2.take();
         if Rc::ptr_eq(self.head.as_ref().unwrap(), &handle.0) {
             self.head = next.clone();
+        } else {
+            prev.as_ref().unwrap().borrow_mut().2 = next.clone();
         }
         if Rc::ptr_eq(self.tail.as_ref().unwrap(), &handle.0) {
             self.tail = prev.clone();
-        }
-        if let Some(prev) = &prev {
-            prev.borrow_mut().2 = next.clone();
-        }
-        if let Some(next) = &next {
-            next.borrow_mut().1 = prev.clone();
+        } else {
+            next.as_ref().unwrap().borrow_mut().1 = prev.clone();
         }
     }
 }
@@ -158,7 +158,7 @@ mod test {
     }
 
     #[test]
-    fn cache_refresh() {
+    fn cache_recent() {
         let mut cache = LRUCache::new(2);
         cache.insert(1, 101);
         cache.insert(2, 102);
