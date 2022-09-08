@@ -4,7 +4,7 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     hash::Hash,
-    rc::Rc,
+    rc::{Rc, Weak},
 };
 
 #[derive(Debug)]
@@ -96,12 +96,12 @@ where
             ));
             *old_head.1.borrow_mut() = Some(new_head.clone());
             *self.head.borrow_mut() = Some(new_head.clone());
-            NodeHandle(new_head)
+            NodeHandle(Rc::downgrade(&new_head))
         } else {
             let new_head = Rc::new(Node(k, RefCell::new(None), RefCell::new(None)));
             *self.head.borrow_mut() = Some(new_head.clone());
             *self.tail.borrow_mut() = Some(new_head.clone());
-            NodeHandle(new_head)
+            NodeHandle(Rc::downgrade(&new_head))
         }
     }
 
@@ -118,16 +118,17 @@ where
         }
     }
 
-    pub fn remove(&mut self, mut handle: NodeHandle<K>) {
-        let curr = handle.0.borrow_mut();
+    pub fn remove(&mut self, handle: NodeHandle<K>) {
+        let mut upgraded = handle.0.upgrade().unwrap();
+        let curr = upgraded.borrow_mut();
         let prev = curr.1.take();
         let next = curr.2.take();
-        if Rc::ptr_eq(self.head.borrow().as_ref().unwrap(), &handle.0) {
+        if Rc::ptr_eq(self.head.borrow().as_ref().unwrap(), &upgraded) {
             *self.head.borrow_mut() = next.clone();
         } else {
             *prev.borrow().as_ref().unwrap().2.borrow_mut() = next.clone();
         }
-        if Rc::ptr_eq(&self.tail.borrow().as_ref().unwrap(), &handle.0) {
+        if Rc::ptr_eq(&self.tail.borrow().as_ref().unwrap(), &upgraded) {
             *self.tail.borrow_mut() = prev.clone();
         } else {
             *next.borrow().as_ref().unwrap().1.borrow_mut() = prev.clone();
@@ -136,7 +137,7 @@ where
 }
 
 #[derive(Debug)]
-struct NodeHandle<K>(Rc<Node<K>>);
+struct NodeHandle<K>(Weak<Node<K>>);
 
 #[derive(Debug)]
 struct Node<K>(
