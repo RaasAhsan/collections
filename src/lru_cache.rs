@@ -76,10 +76,7 @@ struct List<K> {
     tail: RefCell<Option<Rc<Node<K>>>>,
 }
 
-impl<K> List<K>
-where
-    K: Clone,
-{
+impl<K> List<K> {
     pub fn new() -> Self {
         List {
             head: RefCell::new(None),
@@ -110,9 +107,13 @@ where
             if Rc::ptr_eq(self.head.borrow().as_ref().unwrap(), &old_tail) {
                 self.head.take();
             } else {
-                *self.tail.borrow_mut() = old_tail.1.borrow().clone();
+                let next_tail = old_tail.1.take().unwrap();
+                *next_tail.2.borrow_mut() = None;
+                *self.tail.borrow_mut() = Some(next_tail);
             }
-            Some(old_tail.0.clone())
+            // We should have the only remaining strong reference to this node now,
+            // since head, tail, and parent are cleared out
+            Some(Rc::try_unwrap(old_tail).ok().unwrap().0)
         } else {
             None
         }
