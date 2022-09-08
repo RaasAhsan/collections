@@ -7,7 +7,7 @@ pub struct LRUCache<K, V> {
     entries: HashMap<K, V>,
     recent: HashMap<K, LinkedListHandle<K>>,
     list: LinkedList<K>,
-    len: usize,
+    size: usize,
     capacity: usize,
 }
 
@@ -20,7 +20,7 @@ where
             entries: HashMap::new(),
             recent: HashMap::new(),
             list: LinkedList::new(),
-            len: 0,
+            size: 0,
             capacity,
         }
     }
@@ -36,8 +36,8 @@ where
             return;
         }
 
-        if self.len < self.capacity {
-            self.len += 1;
+        if self.size < self.capacity {
+            self.size += 1;
         } else {
             let removed = self.list.pop_tail().unwrap();
             self.recent.remove(&removed);
