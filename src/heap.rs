@@ -1,5 +1,6 @@
 use std::{cmp::Ordering, collections::VecDeque};
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct Heap<A> {
     inner: VecDeque<A>,
 }
@@ -105,6 +106,7 @@ mod test {
         assert_eq!(heap.pop(), Some(1));
         assert_eq!(heap.pop(), Some(2));
         assert_eq!(heap.pop(), Some(3));
+        assert_eq!(heap.pop(), None);
     }
 
     #[test]
@@ -123,8 +125,36 @@ mod test {
     #[test]
     fn size() {
         let mut heap = Heap::new();
+        assert_eq!(heap.size(), 0);
         heap.push(3);
         heap.push(2);
         assert_eq!(heap.size(), 2);
+        heap.pop();
+        assert_eq!(heap.size(), 1);
+    }
+
+    ///////////////////////
+    // PRIVATE API TESTS //
+    ///////////////////////
+
+    #[test]
+    fn sift_up_idempotence() {
+        let mut heap = Heap::new();
+        heap.push(3);
+        heap.push(2);
+        let mut h2 = heap.clone();
+        h2.sift_up();
+        assert_eq!(heap, h2);
+    }
+
+    #[test]
+    fn sift_down_idempotence() {
+        let mut heap = Heap::new();
+        heap.push(3);
+        heap.push(2);
+        heap.pop();
+        let mut h2 = heap.clone();
+        h2.sift_down();
+        assert_eq!(heap, h2);
     }
 }
