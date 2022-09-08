@@ -1,4 +1,11 @@
-use std::{cell::RefCell, collections::HashMap, fmt::Debug, hash::Hash, rc::Rc};
+use std::{
+    borrow::{Borrow, BorrowMut},
+    cell::RefCell,
+    collections::HashMap,
+    fmt::Debug,
+    hash::Hash,
+    rc::Rc,
+};
 
 #[derive(Debug)]
 pub struct LRUCache<K, V> {
@@ -65,8 +72,8 @@ where
 
 #[derive(Debug)]
 struct List<K> {
-    head: Option<Rc<RefCell<Node<K>>>>,
-    tail: Option<Rc<RefCell<Node<K>>>>,
+    head: RefCell<Option<Rc<Node<K>>>>,
+    tail: RefCell<Option<Rc<Node<K>>>>,
 }
 
 impl<K> List<K>
@@ -75,64 +82,67 @@ where
 {
     pub fn new() -> Self {
         List {
-            head: None,
-            tail: None,
+            head: RefCell::new(None),
+            tail: RefCell::new(None),
         }
     }
 
-    pub fn push_head(&mut self, k: K) -> NodeHandle<K> {
+    pub fn push_head(&self, k: K) -> NodeHandle<K> {
         if let Some(old_head) = self.head.take() {
-            let new_head = Rc::new(RefCell::new(Node(k, None, Some(old_head.clone()))));
-            old_head.borrow_mut().1 = Some(new_head.clone());
-            self.head = Some(new_head.clone());
+            let new_head = Rc::new(Node(
+                k,
+                RefCell::new(None),
+                RefCell::new(Some(old_head.clone())),
+            ));
+            *old_head.1.borrow_mut() = Some(new_head.clone());
+            *self.head.borrow_mut() = Some(new_head.clone());
             NodeHandle(new_head)
         } else {
-            let new_head = Rc::new(RefCell::new(Node(k, None, None)));
-            self.head = Some(new_head.clone());
-            self.tail = Some(new_head.clone());
+            let new_head = Rc::new(Node(k, RefCell::new(None), RefCell::new(None)));
+            *self.head.borrow_mut() = Some(new_head.clone());
+            *self.tail.borrow_mut() = Some(new_head.clone());
             NodeHandle(new_head)
         }
     }
 
-    pub fn pop_tail(&mut self) -> Option<K> {
+    pub fn pop_tail(&self) -> Option<K> {
         if let Some(old_tail) = self.tail.take() {
-            if Rc::ptr_eq(self.head.as_ref().unwrap(), &old_tail) {
+            if Rc::ptr_eq(self.head.borrow().as_ref().unwrap(), &old_tail) {
                 self.head.take();
             } else {
-                self.tail = old_tail.borrow_mut().1.clone();
+                *self.tail.borrow_mut() = old_tail.1.borrow().clone();
             }
-
-            Some(old_tail.borrow_mut().0.clone())
+            Some(old_tail.0.clone())
         } else {
             None
         }
     }
 
-    pub fn remove(&mut self, handle: NodeHandle<K>) {
-        let mut curr = handle.0.borrow_mut();
+    pub fn remove(&mut self, mut handle: NodeHandle<K>) {
+        let curr = handle.0.borrow_mut();
         let prev = curr.1.take();
         let next = curr.2.take();
-        if Rc::ptr_eq(self.head.as_ref().unwrap(), &handle.0) {
-            self.head = next.clone();
+        if Rc::ptr_eq(self.head.borrow().as_ref().unwrap(), &handle.0) {
+            *self.head.borrow_mut() = next.clone();
         } else {
-            prev.as_ref().unwrap().borrow_mut().2 = next.clone();
+            *prev.borrow().as_ref().unwrap().2.borrow_mut() = next.clone();
         }
-        if Rc::ptr_eq(self.tail.as_ref().unwrap(), &handle.0) {
-            self.tail = prev.clone();
+        if Rc::ptr_eq(&self.tail.borrow().as_ref().unwrap(), &handle.0) {
+            *self.tail.borrow_mut() = prev.clone();
         } else {
-            next.as_ref().unwrap().borrow_mut().1 = prev.clone();
+            *next.borrow().as_ref().unwrap().1.borrow_mut() = prev.clone();
         }
     }
 }
 
 #[derive(Debug)]
-struct NodeHandle<K>(Rc<RefCell<Node<K>>>);
+struct NodeHandle<K>(Rc<Node<K>>);
 
 #[derive(Debug)]
 struct Node<K>(
     K,
-    Option<Rc<RefCell<Node<K>>>>,
-    Option<Rc<RefCell<Node<K>>>>,
+    RefCell<Option<Rc<Node<K>>>>,
+    RefCell<Option<Rc<Node<K>>>>,
 );
 
 #[cfg(test)]
