@@ -1,13 +1,13 @@
 use std::{cmp::Ordering, collections::VecDeque};
 
 pub struct Heap<A> {
-    array: VecDeque<A>,
+    inner: VecDeque<A>,
 }
 
 impl<A> Heap<A> {
     pub fn new() -> Self {
         Heap {
-            array: VecDeque::new(),
+            inner: VecDeque::new(),
         }
     }
 }
@@ -16,8 +16,12 @@ impl<A> Heap<A>
 where
     A: Ord,
 {
+    pub fn size(&self) -> usize {
+        self.inner.len()
+    }
+
     pub fn pop(&mut self) -> Option<A> {
-        let head = self.array.swap_remove_back(0);
+        let head = self.inner.swap_remove_back(0);
         if head.is_some() {
             self.sift_down();
         }
@@ -25,35 +29,35 @@ where
     }
 
     pub fn push(&mut self, a: A) {
-        self.array.push_back(a);
+        self.inner.push_back(a);
         self.sift_up();
     }
 
     fn sift_down(&mut self) {
-        if self.array.len() <= 1 {
+        if self.inner.len() <= 1 {
             return;
         }
 
         let mut index = 0;
         loop {
-            let mut lowest = self.array.get(index).unwrap();
+            let mut lowest = self.inner.get(index).unwrap();
             let mut new_index = index;
             let first_child = 2 * index + 1;
             let second_child = 2 * index + 1;
-            if let Some(value) = self.array.get(first_child) {
+            if let Some(value) = self.inner.get(first_child) {
                 if value.cmp(lowest) == Ordering::Less {
                     lowest = value;
                     new_index = first_child;
                 }
             }
-            if let Some(value) = self.array.get(second_child) {
+            if let Some(value) = self.inner.get(second_child) {
                 if value.cmp(lowest) == Ordering::Less {
                     new_index = second_child;
                 }
             }
 
             if new_index != index {
-                self.array.swap(new_index, index);
+                self.inner.swap(new_index, index);
                 index = new_index;
             } else {
                 break;
@@ -62,24 +66,24 @@ where
     }
 
     fn sift_up(&mut self) {
-        let len = self.array.len();
+        let len = self.inner.len();
         if len <= 1 {
             return;
         }
 
         let mut index = len - 1;
         loop {
-            let current = self.array.get(index).unwrap();
+            let current = self.inner.get(index).unwrap();
             let mut new_index = index;
             let parent = index / 2;
-            if let Some(value) = self.array.get(parent) {
+            if let Some(value) = self.inner.get(parent) {
                 if current.cmp(value) == Ordering::Less {
                     new_index = parent;
                 }
             }
 
             if new_index != index {
-                self.array.swap(new_index, index);
+                self.inner.swap(new_index, index);
                 index = new_index;
             } else {
                 break;
@@ -114,5 +118,13 @@ mod test {
         let mut heap: Heap<i32> = Heap::new();
         heap.push(1);
         assert_eq!(heap.pop(), Some(1));
+    }
+
+    #[test]
+    fn size() {
+        let mut heap = Heap::new();
+        heap.push(3);
+        heap.push(2);
+        assert_eq!(heap.size(), 2);
     }
 }
