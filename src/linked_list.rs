@@ -4,6 +4,7 @@ use std::{
     rc::{Rc, Weak},
 };
 
+/// A doubly linked list which support constant time head insertion, tail deletion, and random deletion.
 #[derive(Debug)]
 pub struct LinkedList<K> {
     head: RefCell<Option<Rc<Node<K>>>>,
@@ -71,6 +72,9 @@ impl<K> LinkedList<K> {
     }
 }
 
+/// A handle to a particular node in a LinkedList. This is useful for
+/// random deletions. This handle will be rendered stale if the referenced
+/// node is deleted from the list.
 #[derive(Debug)]
 pub struct LinkedListHandle<K>(Weak<Node<K>>);
 
