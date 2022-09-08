@@ -27,12 +27,12 @@ impl<K> LinkedList<K> {
                 RefCell::new(Some(old_head.clone())),
             ));
             *old_head.1.borrow_mut() = Some(new_head.clone());
-            *self.head.borrow_mut() = Some(new_head.clone());
+            self.head = Some(new_head.clone());
             LinkedListHandle(Rc::downgrade(&new_head))
         } else {
             let new_head = Rc::new(Node(k, RefCell::new(None), RefCell::new(None)));
-            *self.head.borrow_mut() = Some(new_head.clone());
-            *self.tail.borrow_mut() = Some(new_head.clone());
+            self.head = Some(new_head.clone());
+            self.tail = Some(new_head.clone());
             LinkedListHandle(Rc::downgrade(&new_head))
         }
     }
@@ -44,7 +44,7 @@ impl<K> LinkedList<K> {
             } else {
                 let next_tail = old_tail.1.take().unwrap();
                 *next_tail.2.borrow_mut() = None;
-                *self.tail.borrow_mut() = Some(next_tail);
+                self.tail = Some(next_tail);
             }
             // We should have the only remaining strong reference to this node now,
             // since head, tail, and parent are cleared out
@@ -59,13 +59,13 @@ impl<K> LinkedList<K> {
         let curr = upgraded.borrow_mut();
         let prev = curr.1.take();
         let next = curr.2.take();
-        if Rc::ptr_eq(self.head.borrow().as_ref().unwrap(), &upgraded) {
-            *self.head.borrow_mut() = next.clone();
+        if Rc::ptr_eq(self.head.as_ref().unwrap(), &upgraded) {
+            self.head = next.clone();
         } else {
             *prev.borrow().as_ref().unwrap().2.borrow_mut() = next.clone();
         }
-        if Rc::ptr_eq(&self.tail.borrow().as_ref().unwrap(), &upgraded) {
-            *self.tail.borrow_mut() = prev.clone();
+        if Rc::ptr_eq(self.tail.as_ref().unwrap(), &upgraded) {
+            self.tail = prev.clone();
         } else {
             *next.borrow().as_ref().unwrap().1.borrow_mut() = prev.clone();
         }
