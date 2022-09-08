@@ -7,19 +7,19 @@ use std::{
 /// A doubly linked list which support constant time head insertion, tail deletion, and random deletion.
 #[derive(Debug)]
 pub struct LinkedList<K> {
-    head: RefCell<Option<Rc<Node<K>>>>,
-    tail: RefCell<Option<Rc<Node<K>>>>,
+    head: Option<Rc<Node<K>>>,
+    tail: Option<Rc<Node<K>>>,
 }
 
 impl<K> LinkedList<K> {
     pub fn new() -> Self {
         LinkedList {
-            head: RefCell::new(None),
-            tail: RefCell::new(None),
+            head: None,
+            tail: None,
         }
     }
 
-    pub fn push_head(&self, k: K) -> LinkedListHandle<K> {
+    pub fn push_head(&mut self, k: K) -> LinkedListHandle<K> {
         if let Some(old_head) = self.head.take() {
             let new_head = Rc::new(Node(
                 k,
@@ -37,7 +37,7 @@ impl<K> LinkedList<K> {
         }
     }
 
-    pub fn pop_tail(&self) -> Option<K> {
+    pub fn pop_tail(&mut self) -> Option<K> {
         if let Some(old_tail) = self.tail.take() {
             if Rc::ptr_eq(self.head.borrow().as_ref().unwrap(), &old_tail) {
                 self.head.take();
