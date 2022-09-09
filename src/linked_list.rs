@@ -21,16 +21,12 @@ impl<K> LinkedList<K> {
 
     pub fn push_head(&mut self, k: K) -> LinkedListHandle<K> {
         if let Some(old_head) = self.head.take() {
-            let new_head = Rc::new(Node(
-                k,
-                RefCell::new(None),
-                RefCell::new(Some(old_head.clone())),
-            ));
-            *old_head.1.borrow_mut() = Some(new_head.clone());
+            let new_head = Rc::new(Node::new(k, None, Some(old_head.clone())));
+            *old_head.prev.borrow_mut() = Some(new_head.clone());
             self.head = Some(new_head.clone());
             LinkedListHandle(Rc::downgrade(&new_head))
         } else {
-            let new_head = Rc::new(Node(k, RefCell::new(None), RefCell::new(None)));
+            let new_head = Rc::new(Node::new(k, None, None));
             self.head = Some(new_head.clone());
             self.tail = Some(new_head.clone());
             LinkedListHandle(Rc::downgrade(&new_head))
@@ -42,13 +38,13 @@ impl<K> LinkedList<K> {
             if Rc::ptr_eq(self.head.borrow().as_ref().unwrap(), &old_tail) {
                 self.head.take();
             } else {
-                let next_tail = old_tail.1.take().unwrap();
-                *next_tail.2.borrow_mut() = None;
+                let next_tail = old_tail.prev.take().unwrap();
+                *next_tail.next.borrow_mut() = None;
                 self.tail = Some(next_tail);
             }
             // We should have the only remaining strong reference to this node now,
             // since head, tail, and parent are cleared out
-            Some(Rc::try_unwrap(old_tail).ok().unwrap().0)
+            Some(Rc::try_unwrap(old_tail).ok().unwrap().key)
         } else {
             None
         }
@@ -57,17 +53,17 @@ impl<K> LinkedList<K> {
     pub fn remove(&mut self, handle: LinkedListHandle<K>) {
         let mut upgraded = handle.0.upgrade().unwrap();
         let curr = upgraded.borrow_mut();
-        let prev = curr.1.take();
-        let next = curr.2.take();
+        let prev = curr.prev.take();
+        let next = curr.next.take();
         if Rc::ptr_eq(self.head.as_ref().unwrap(), &upgraded) {
             self.head = next.clone();
         } else {
-            *prev.borrow().as_ref().unwrap().2.borrow_mut() = next.clone();
+            *prev.borrow().as_ref().unwrap().next.borrow_mut() = next.clone();
         }
         if Rc::ptr_eq(self.tail.as_ref().unwrap(), &upgraded) {
             self.tail = prev;
         } else {
-            *next.borrow().as_ref().unwrap().1.borrow_mut() = prev;
+            *next.borrow().as_ref().unwrap().prev.borrow_mut() = prev;
         }
     }
 }
@@ -79,8 +75,18 @@ impl<K> LinkedList<K> {
 pub struct LinkedListHandle<K>(Weak<Node<K>>);
 
 #[derive(Debug)]
-struct Node<K>(
-    K,
-    RefCell<Option<Rc<Node<K>>>>,
-    RefCell<Option<Rc<Node<K>>>>,
-);
+struct Node<K> {
+    key: K,
+    prev: RefCell<Option<Rc<Node<K>>>>,
+    next: RefCell<Option<Rc<Node<K>>>>,
+}
+
+impl<K> Node<K> {
+    pub fn new(key: K, prev: Option<Rc<Node<K>>>, next: Option<Rc<Node<K>>>) -> Self {
+        Node {
+            key,
+            prev: RefCell::new(prev),
+            next: RefCell::new(next),
+        }
+    }
+}
