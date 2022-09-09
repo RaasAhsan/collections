@@ -65,9 +65,9 @@ impl<K> LinkedList<K> {
             *prev.borrow().as_ref().unwrap().2.borrow_mut() = next.clone();
         }
         if Rc::ptr_eq(self.tail.as_ref().unwrap(), &upgraded) {
-            self.tail = prev.clone();
+            self.tail = prev;
         } else {
-            *next.borrow().as_ref().unwrap().1.borrow_mut() = prev.clone();
+            *next.borrow().as_ref().unwrap().1.borrow_mut() = prev;
         }
     }
 }
