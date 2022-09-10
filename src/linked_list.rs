@@ -1,17 +1,17 @@
 use std::{
     borrow::{Borrow, BorrowMut},
-    cell::RefCell,
-    rc::{Rc, Weak},
+    cell::{RefCell, Ref},
+    rc::{Rc, Weak}, ops::Deref,
 };
 
 /// A doubly linked list which support constant time head insertion, tail deletion, and random deletion.
 #[derive(Debug)]
-pub struct LinkedList<K> {
-    head: Option<Rc<Node<K>>>,
-    tail: Option<Rc<Node<K>>>,
+pub struct LinkedList<A> {
+    head: Option<Rc<Node<A>>>,
+    tail: Option<Rc<Node<A>>>,
 }
 
-impl<K> LinkedList<K> {
+impl<A> LinkedList<A> {
     pub fn new() -> Self {
         LinkedList {
             head: None,
@@ -19,7 +19,7 @@ impl<K> LinkedList<K> {
         }
     }
 
-    pub fn push_head(&mut self, k: K) -> LinkedListHandle<K> {
+    pub fn push_head(&mut self, k: A) -> LinkedListHandle<A> {
         if let Some(old_head) = self.head.take() {
             let new_head = Rc::new(Node::new(k, None, Some(old_head.clone())));
             *old_head.prev.borrow_mut() = Some(new_head.clone());
@@ -33,7 +33,7 @@ impl<K> LinkedList<K> {
         }
     }
 
-    pub fn pop_tail(&mut self) -> Option<K> {
+    pub fn pop_tail(&mut self) -> Option<A> {
         if let Some(old_tail) = self.tail.take() {
             if Rc::ptr_eq(self.head.borrow().as_ref().unwrap(), &old_tail) {
                 self.head.take();
@@ -50,7 +50,7 @@ impl<K> LinkedList<K> {
         }
     }
 
-    pub fn remove(&mut self, handle: LinkedListHandle<K>) {
+    pub fn remove(&mut self, handle: LinkedListHandle<A>) {
         let mut upgraded = handle.0.upgrade().unwrap();
         let curr = upgraded.borrow_mut();
         let prev = curr.prev.take();
@@ -66,7 +66,47 @@ impl<K> LinkedList<K> {
             *next.borrow().as_ref().unwrap().prev.borrow_mut() = prev;
         }
     }
+
+    // pub fn iter<'a>(&'a self) -> Iter<'a, A> {
+    //     Iter { head: self.head.as_ref().map(|n| n.as_ref()), tail: self.tail.as_ref().map(|n| n.as_ref()) }
+    // }
 }
+
+// pub struct Iter<A> {
+//     head: Option<AsRef<Node<A>>,
+//     tail: Option<AsRef<Node<A>>,
+// }
+
+// impl<A> Iterator for Iter<A> {
+//     type Item = &A;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if let Some(head) = self.head.take() {
+//             let item = Ref::map(head, |n| &n.key);
+
+//             // Invariant: if there is a head, there must be a tail
+//             let tail = self.tail.unwrap();
+//             if std::ptr::eq(head, tail) {
+//                 self.head = None;
+//                 self.tail = None;
+//             } else {
+//                 // We have a tail element next
+//                 let next_head = head.next.borrow();
+//                 let x = Ref::map(next_head, |n| &n.unwrap());
+//                 self.head = Some(next_head);
+//             }
+//             Some(item)
+//         } else {
+//             None
+//         }
+//     }
+// }
+
+// impl<'a, A> DoubleEndedIterator for Iter<'a, A> {
+//     fn next_back(&mut self) -> Option<Self::Item> {
+//         todo!()
+//     }
+// }
 
 /// A handle to a particular node in a LinkedList. This is useful for
 /// random deletions. This handle will be rendered stale if the referenced
