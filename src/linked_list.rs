@@ -1,7 +1,8 @@
 use std::{
     borrow::{Borrow, BorrowMut},
-    cell::{RefCell, Ref},
-    rc::{Rc, Weak}, ops::Deref,
+    cell::{Ref, RefCell},
+    ops::Deref,
+    rc::{Rc, Weak},
 };
 
 /// A doubly linked list which support constant time head insertion, tail deletion, and random deletion.
