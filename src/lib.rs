@@ -1,5 +1,4 @@
 pub mod avl_tree;
-pub mod avl_tree_old;
 pub mod bs_tree;
 pub mod hash_trie;
 pub mod heap;
