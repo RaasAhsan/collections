@@ -36,8 +36,7 @@ fn main() {
     tree.insert(15, 0);
     tree.insert(20, 0);
     tree.insert(10, 0);
-    dbg!(&tree);
-    tree.insert(5, 0);
-    tree.insert(0, 0);
-    dbg!(&tree);
+    tree.insert(25, 0);
+    tree.insert(30, 0);
+    dbg!(tree.height());
 }
