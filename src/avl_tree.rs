@@ -1,5 +1,7 @@
 use std::{cmp::Ordering, fmt::Debug, ptr::NonNull};
 
+/// An AVL tree is a self-balancing binary search tree.
+/// Invariant: for any node N, the heights of both children of N may differ by no more than 1.
 #[derive(Debug)]
 pub enum AVLTree<K, V> {
     Node(Node<K, V>),
@@ -24,6 +26,8 @@ impl<K, V> AVLTree<K, V> {
             AVLTree::Nil => None,
         }
     }
+
+    // fn left(&self) -> Option()
 
     pub fn height(&self) -> usize {
         match self {
@@ -227,6 +231,14 @@ mod tests {
         for i in input.iter() {
             assert_eq!(tree.get(i), Some(i));
         }
+    }
+
+    #[test]
+    fn insert_and_get() {
+        let mut tree = AVLTree::new();
+        tree.insert(10, 10);
+        assert_eq!(tree.get(&10), Some(&10));
+        assert_eq!(tree.get(&9), None);
     }
 
     #[test]
