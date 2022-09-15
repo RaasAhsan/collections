@@ -61,7 +61,7 @@ where
                         Ordering::Greater => node.right.as_mut().insert(k, v),
                         Ordering::Equal => {}
                     }
-                    node.reset_height();
+                    node.update_height();
 
                     self.rebalance();
                 }
@@ -123,8 +123,8 @@ where
         // Set old root (c) to right child of new root (b)
         std::mem::swap(&mut c, b);
         // Height of new root and old root has changed
-        b.node_mut().unwrap().reset_height();
-        self.node_mut().unwrap().reset_height();
+        b.node_mut().unwrap().update_height();
+        self.node_mut().unwrap().update_height();
     }
 
     unsafe fn unsafe_rotate_left(&mut self) {
@@ -141,8 +141,8 @@ where
         // Set old root (c) to right child of new root (b)
         std::mem::swap(&mut c, b);
         // Height of new root and old root has changed
-        b.node_mut().unwrap().reset_height();
-        self.node_mut().unwrap().reset_height();
+        b.node_mut().unwrap().update_height();
+        self.node_mut().unwrap().update_height();
     }
 }
 
@@ -174,7 +174,7 @@ pub struct Node<K, V> {
 }
 
 impl<K, V> Node<K, V> {
-    fn reset_height(&mut self) {
+    fn update_height(&mut self) {
         unsafe {
             self.height_m =
                 1 + std::cmp::max(self.left.as_ref().height(), self.right.as_ref().height())
