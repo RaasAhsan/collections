@@ -51,7 +51,7 @@ impl<K, V> AVLTree<K, V> {
 
 impl<K, V> AVLTree<K, V>
 where
-    K: Ord + Copy + Debug,
+    K: Ord + Copy,
 {
     pub fn get(&self, k: &K) -> Option<&V> {
         match self {
@@ -183,6 +183,9 @@ pub struct Node<K, V> {
 
 #[cfg(test)]
 mod tests {
+    use quickcheck::quickcheck;
+    use std::collections::HashSet;
+
     use crate::avl_tree::AVLTree;
 
     impl<K, V> AVLTree<K, V> {
@@ -222,7 +225,6 @@ mod tests {
     fn test_insertion_balance(input: Vec<i32>) {
         let mut tree = AVLTree::<i32, i32>::new();
         for i in input.iter() {
-            println!("---");
             tree.insert(*i, *i);
         }
         assert!(tree.balanced_internal());
@@ -254,5 +256,29 @@ mod tests {
     #[test]
     fn left_right_rotation() {
         test_insertion_balance(vec![15, 10, 20, 5, 12, 14]);
+    }
+
+    #[test]
+    fn prop_tree_insertion() {
+        fn p(input: HashSet<i32>) -> bool {
+            let mut tree = AVLTree::new();
+            for i in input.iter() {
+                tree.insert(*i, *i);
+            }
+            input.iter().all(|i| tree.get(i).is_some())
+        }
+        quickcheck(p as fn(HashSet<i32>) -> bool)
+    }
+
+    #[test]
+    fn prop_tree_balance() {
+        fn p(input: HashSet<i32>) -> bool {
+            let mut tree = AVLTree::new();
+            for i in input.iter() {
+                tree.insert(*i, *i);
+            }
+            tree.balanced_internal()
+        }
+        quickcheck(p as fn(HashSet<i32>) -> bool)
     }
 }
