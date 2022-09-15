@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, ptr::NonNull};
+use std::{cmp::Ordering, fmt::Debug, ptr::NonNull};
 
 #[derive(Debug)]
 pub enum AVLTree<K, V> {
@@ -51,8 +51,21 @@ impl<K, V> AVLTree<K, V> {
 
 impl<K, V> AVLTree<K, V>
 where
-    K: Ord + Copy,
+    K: Ord + Copy + Debug,
 {
+    pub fn get(&self, k: &K) -> Option<&V> {
+        match self {
+            AVLTree::Node(node) => unsafe {
+                match k.cmp(&node.key) {
+                    Ordering::Equal => Some(&node.value),
+                    Ordering::Less => node.left.as_ref().get(k),
+                    Ordering::Greater => node.right.as_ref().get(k),
+                }
+            },
+            AVLTree::Nil => None,
+        }
+    }
+
     pub fn insert(&mut self, k: K, v: V) {
         unsafe {
             match self {
@@ -63,22 +76,28 @@ where
                         Ordering::Equal => {}
                     }
 
-                    let left_ref = node.left.as_ref();
-                    let right_ref = node.right.as_ref();
+                    let left_ref = node.left.as_mut();
+                    let right_ref = node.right.as_mut();
 
                     self.reset_height();
 
                     match self.balance() {
                         -2 => match k.cmp(&left_ref.node().unwrap().key) {
                             Ordering::Less => self.unsafe_rotate_right(),
-                            Ordering::Greater => {}
-                            Ordering::Equal => {}
+                            Ordering::Greater => {
+                                left_ref.unsafe_rotate_left();
+                                self.unsafe_rotate_right();
+                            }
+                            Ordering::Equal => panic!("can never have balanced"),
                         },
                         2 => match k.cmp(&right_ref.node().unwrap().key) {
-                            Ordering::Less => {},
+                            Ordering::Less => {
+                                right_ref.unsafe_rotate_right();
+                                self.unsafe_rotate_left();
+                            }
                             Ordering::Greater => self.unsafe_rotate_left(),
-                            Ordering::Equal => {}
-                        }
+                            Ordering::Equal => panic!("can never have balanced"),
+                        },
                         _ => {}
                     }
                 }
@@ -148,7 +167,7 @@ impl<K, V> Drop for AVLTree<K, V> {
                 Box::from_raw(node.left.as_ptr());
                 Box::from_raw(node.right.as_ptr());
             },
-            AVLTree::Nil => {},
+            AVLTree::Nil => {}
         }
     }
 }
@@ -200,25 +219,40 @@ mod tests {
         }
     }
 
-    #[test]
-    fn tree_right_rotation_balanced() {
+    fn test_insertion_balance(input: Vec<i32>) {
         let mut tree = AVLTree::<i32, i32>::new();
-        tree.insert(15, 0);
-        tree.insert(20, 0);
-        tree.insert(10, 0);
-        tree.insert(5, 0);
-        tree.insert(0, 0);
+        for i in input.iter() {
+            println!("---");
+            tree.insert(*i, *i);
+        }
         assert!(tree.balanced_internal());
+        for i in input.iter() {
+            assert_eq!(tree.get(i), Some(i));
+        }
     }
 
     #[test]
-    fn tree_left_rotation_balanced() {
-        let mut tree = AVLTree::<i32, i32>::new();
-        tree.insert(15, 0);
-        tree.insert(20, 0);
-        tree.insert(10, 0);
-        tree.insert(25, 0);
-        tree.insert(30, 0);
-        assert!(tree.balanced_internal());
+    fn right_rotation() {
+        test_insertion_balance(vec![10, 5, 0]);
+        test_insertion_balance(vec![15, 10, 20, 5, 0]);
+        test_insertion_balance(vec![15, 10, 20, 5, 12, 0]);
+    }
+
+    #[test]
+    fn left_rotation() {
+        test_insertion_balance(vec![0, 5, 10]);
+        test_insertion_balance(vec![15, 10, 20, 25, 30]);
+        test_insertion_balance(vec![15, 10, 20, 18, 25, 30]);
+        test_insertion_balance(vec![15, 10, 20, 18, 25, 22]);
+    }
+
+    #[test]
+    fn right_left_rotation() {
+        test_insertion_balance(vec![15, 10, 20, 18, 25, 19]);
+    }
+
+    #[test]
+    fn left_right_rotation() {
+        test_insertion_balance(vec![15, 10, 20, 5, 12, 14]);
     }
 }
