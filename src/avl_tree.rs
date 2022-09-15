@@ -20,7 +20,7 @@ impl<K, V> AVLTree<K, V> {
         }
     }
 
-    pub fn balance(&self) -> isize {
+    pub fn balance_factor(&self) -> isize {
         match self {
             AVLTree::Node(node) => node.balance(),
             AVLTree::Nil => 0,
@@ -63,28 +63,7 @@ where
                     }
                     node.reset_height();
 
-                    match node.balance() {
-                        -2 => {
-                            let left_ref = node.left.as_mut();
-                            if left_ref.balance() <= 0 {
-                                self.unsafe_rotate_right()
-                            } else {
-                                left_ref.unsafe_rotate_left();
-                                self.unsafe_rotate_right();
-                            }
-                        }
-                        2 => {
-                            let right_ref = node.right.as_mut();
-                            if right_ref.balance() >= 0 {
-                                self.unsafe_rotate_left()
-                            } else {
-                                right_ref.unsafe_rotate_right();
-                                self.unsafe_rotate_left();
-                            }
-                        }
-                        -1 | 0 | 1 => {}
-                        _ => panic!("illegal balance factor"),
-                    }
+                    self.rebalance();
                 }
                 AVLTree::Nil => {
                     let left_ptr = Box::into_raw(Box::new(AVLTree::<K, V>::new()));
@@ -99,6 +78,34 @@ where
                     *self = AVLTree::Node(node);
                 }
             }
+        }
+    }
+
+    fn rebalance(&mut self) {
+        match self {
+            AVLTree::Node(node) => match node.balance() {
+                -2 => unsafe {
+                    let left_ref = node.left.as_mut();
+                    if left_ref.balance_factor() <= 0 {
+                        self.unsafe_rotate_right()
+                    } else {
+                        left_ref.unsafe_rotate_left();
+                        self.unsafe_rotate_right();
+                    }
+                },
+                2 => unsafe {
+                    let right_ref = node.right.as_mut();
+                    if right_ref.balance_factor() >= 0 {
+                        self.unsafe_rotate_left()
+                    } else {
+                        right_ref.unsafe_rotate_right();
+                        self.unsafe_rotate_left();
+                    }
+                },
+                -1 | 0 | 1 => {}
+                _ => panic!("illegal balance factor"),
+            },
+            AVLTree::Nil => {}
         }
     }
 
