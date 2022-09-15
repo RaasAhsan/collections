@@ -13,13 +13,6 @@ impl<K, V> AVLTree<K, V> {
         Self::Nil
     }
 
-    fn node(&self) -> Option<&Node<K, V>> {
-        match self {
-            AVLTree::Node(node) => Some(node),
-            AVLTree::Nil => None,
-        }
-    }
-
     fn node_mut(&mut self) -> Option<&mut Node<K, V>> {
         match self {
             AVLTree::Node(node) => Some(node),
@@ -27,7 +20,12 @@ impl<K, V> AVLTree<K, V> {
         }
     }
 
-    // fn left(&self) -> Option()
+    pub fn balance(&self) -> isize {
+        match self {
+            AVLTree::Node(node) => node.balance(),
+            AVLTree::Nil => 0,
+        }
+    }
 
     pub fn height(&self) -> usize {
         match self {
@@ -65,27 +63,27 @@ where
                     }
                     node.reset_height();
 
-                    let left_ref = node.left.as_mut();
-                    let right_ref = node.right.as_mut();
-
                     match node.balance() {
-                        -2 => match k.cmp(&left_ref.node().unwrap().key) {
-                            Ordering::Less => self.unsafe_rotate_right(),
-                            Ordering::Greater => {
+                        -2 => {
+                            let left_ref = node.left.as_mut();
+                            if left_ref.balance() <= 0 {
+                                self.unsafe_rotate_right()
+                            } else {
                                 left_ref.unsafe_rotate_left();
                                 self.unsafe_rotate_right();
                             }
-                            Ordering::Equal => panic!("can never have balanced"),
-                        },
-                        2 => match k.cmp(&right_ref.node().unwrap().key) {
-                            Ordering::Less => {
+                        }
+                        2 => {
+                            let right_ref = node.right.as_mut();
+                            if right_ref.balance() >= 0 {
+                                self.unsafe_rotate_left()
+                            } else {
                                 right_ref.unsafe_rotate_right();
                                 self.unsafe_rotate_left();
                             }
-                            Ordering::Greater => self.unsafe_rotate_left(),
-                            Ordering::Equal => panic!("can never have balanced"),
-                        },
-                        _ => {}
+                        }
+                        -1 | 0 | 1 => {}
+                        _ => panic!("illegal balance factor"),
                     }
                 }
                 AVLTree::Nil => {
