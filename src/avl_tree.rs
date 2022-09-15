@@ -110,40 +110,29 @@ where
     }
 
     unsafe fn unsafe_rotate_right(&mut self) {
-        // Get reference to old root's left child (who will be the new root)
-        let a = self.node_mut().unwrap().left.as_mut();
-        // Get reference to new root's right child
-        let b = a.node_mut().unwrap().right.as_mut();
-        // Swap out the new root's right child (b will become Nil)
-        let mut c = std::mem::take(b);
-        // Swap new root old child (c) with the old root's left child (a). c is now the new root
-        std::mem::swap(&mut c, a);
-        // Swap new root (c) with the old root (self)
-        std::mem::swap(&mut c, self);
-        // Set old root (c) to right child of new root (b)
-        std::mem::swap(&mut c, b);
-        // Height of new root and old root has changed
-        b.node_mut().unwrap().update_height();
-        self.node_mut().unwrap().update_height();
+        let child = self.node_mut().unwrap().left.as_mut();
+        let grandchild = child.node_mut().unwrap().right.as_mut();
+        rotate(self, child, grandchild);
     }
 
     unsafe fn unsafe_rotate_left(&mut self) {
-        // Get reference to old root's left child (who will be the new root)
-        let a = self.node_mut().unwrap().right.as_mut();
-        // Get reference to new root's right child
-        let b = a.node_mut().unwrap().left.as_mut();
-        // Swap out the new root's right child (b will become Nil)
-        let mut c = std::mem::take(b);
-        // Swap new root old child (c) with the old root's left child (a). c is now the new root
-        std::mem::swap(&mut c, a);
-        // Swap new root (c) with the old root (self)
-        std::mem::swap(&mut c, self);
-        // Set old root (c) to right child of new root (b)
-        std::mem::swap(&mut c, b);
-        // Height of new root and old root has changed
-        b.node_mut().unwrap().update_height();
-        self.node_mut().unwrap().update_height();
+        let child = self.node_mut().unwrap().right.as_mut();
+        let grandchild = child.node_mut().unwrap().left.as_mut();
+        rotate(self, child, grandchild);
     }
+}
+
+fn rotate<K, V>(
+    parent: &mut AVLTree<K, V>,
+    child: &mut AVLTree<K, V>,
+    grandchild: &mut AVLTree<K, V>,
+) {
+    let mut temp = std::mem::take(grandchild);
+    std::mem::swap(&mut temp, child); // temp has child now, grandchild has child now
+    std::mem::swap(&mut temp, parent); // parent is child now, temp has old parent
+    std::mem::swap(&mut temp, grandchild); // move old parent into new parent child
+    grandchild.node_mut().unwrap().update_height();
+    parent.node_mut().unwrap().update_height();
 }
 
 impl<K, V> Default for AVLTree<K, V> {
