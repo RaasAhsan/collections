@@ -66,13 +66,15 @@ where
                     self.rebalance();
                 }
                 AVLTree::Nil => {
-                    let left_ptr = Box::into_raw(Box::new(AVLTree::<K, V>::new()));
-                    let right_ptr = Box::into_raw(Box::new(AVLTree::<K, V>::new()));
                     let node = Node {
                         key: k,
                         value: v,
-                        left: NonNull::new_unchecked(left_ptr),
-                        right: NonNull::new_unchecked(right_ptr),
+                        left: NonNull::new_unchecked(Box::into_raw(Box::new(
+                            AVLTree::<K, V>::new(),
+                        ))),
+                        right: NonNull::new_unchecked(Box::into_raw(Box::new(
+                            AVLTree::<K, V>::new(),
+                        ))),
                         height_m: 1,
                     };
                     *self = AVLTree::Node(node);
