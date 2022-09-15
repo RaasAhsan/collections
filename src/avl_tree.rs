@@ -141,6 +141,18 @@ impl<K, V> Default for AVLTree<K, V> {
     }
 }
 
+impl<K, V> Drop for AVLTree<K, V> {
+    fn drop(&mut self) {
+        match self {
+            AVLTree::Node(node) => unsafe {
+                Box::from_raw(node.left.as_ptr());
+                Box::from_raw(node.right.as_ptr());
+            },
+            AVLTree::Nil => {},
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Node<K, V> {
     key: K,
