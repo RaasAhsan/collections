@@ -18,33 +18,17 @@ impl<K, V> AVLTree<K, V> {
         }
     }
 
+    fn node_mut(&mut self) -> Option<&mut Node<K, V>> {
+        match self {
+            AVLTree::Node(node) => Some(node),
+            AVLTree::Nil => None,
+        }
+    }
+
     pub fn height(&self) -> usize {
         match self {
             AVLTree::Node(node) => node.height_m,
             AVLTree::Nil => 0,
-        }
-    }
-
-    fn reset_height(&mut self) {
-        unsafe {
-            match self {
-                AVLTree::Node(node) => {
-                    node.height_m =
-                        1 + std::cmp::max(node.left.as_ref().height(), node.right.as_ref().height())
-                }
-                AVLTree::Nil => {}
-            }
-        }
-    }
-
-    pub fn balance(&self) -> isize {
-        unsafe {
-            match self {
-                AVLTree::Node(node) => {
-                    (node.right.as_ref().height() as isize) - (node.left.as_ref().height() as isize)
-                }
-                AVLTree::Nil => 0,
-            }
         }
     }
 }
@@ -75,13 +59,12 @@ where
                         Ordering::Greater => node.right.as_mut().insert(k, v),
                         Ordering::Equal => {}
                     }
+                    node.reset_height();
 
                     let left_ref = node.left.as_mut();
                     let right_ref = node.right.as_mut();
 
-                    self.reset_height();
-
-                    match self.balance() {
+                    match node.balance() {
                         -2 => match k.cmp(&left_ref.node().unwrap().key) {
                             Ordering::Less => self.unsafe_rotate_right(),
                             Ordering::Greater => {
@@ -119,38 +102,38 @@ where
 
     unsafe fn unsafe_rotate_right(&mut self) {
         // Get reference to old root's left child (who will be the new root)
-        let mut a = self.node().unwrap().left;
+        let a = self.node_mut().unwrap().left.as_mut();
         // Get reference to new root's right child
-        let mut b = a.as_ref().node().unwrap().right;
+        let b = a.node_mut().unwrap().right.as_mut();
         // Swap out the new root's right child (b will become Nil)
-        let mut c = std::mem::take(b.as_mut());
+        let mut c = std::mem::take(b);
         // Swap new root old child (c) with the old root's left child (a). c is now the new root
-        std::mem::swap(&mut c, a.as_mut());
+        std::mem::swap(&mut c, a);
         // Swap new root (c) with the old root (self)
         std::mem::swap(&mut c, self);
         // Set old root (c) to right child of new root (b)
-        std::mem::swap(&mut c, b.as_mut());
+        std::mem::swap(&mut c, b);
         // Height of new root and old root has changed
-        b.as_mut().reset_height();
-        self.reset_height();
+        b.node_mut().unwrap().reset_height();
+        self.node_mut().unwrap().reset_height();
     }
 
     unsafe fn unsafe_rotate_left(&mut self) {
         // Get reference to old root's left child (who will be the new root)
-        let mut a = self.node().unwrap().right;
+        let a = self.node_mut().unwrap().right.as_mut();
         // Get reference to new root's right child
-        let mut b = a.as_ref().node().unwrap().left;
+        let b = a.node_mut().unwrap().left.as_mut();
         // Swap out the new root's right child (b will become Nil)
-        let mut c = std::mem::take(b.as_mut());
+        let mut c = std::mem::take(b);
         // Swap new root old child (c) with the old root's left child (a). c is now the new root
-        std::mem::swap(&mut c, a.as_mut());
+        std::mem::swap(&mut c, a);
         // Swap new root (c) with the old root (self)
         std::mem::swap(&mut c, self);
         // Set old root (c) to right child of new root (b)
-        std::mem::swap(&mut c, b.as_mut());
+        std::mem::swap(&mut c, b);
         // Height of new root and old root has changed
-        b.as_mut().reset_height();
-        self.reset_height();
+        b.node_mut().unwrap().reset_height();
+        self.node_mut().unwrap().reset_height();
     }
 }
 
@@ -179,6 +162,19 @@ pub struct Node<K, V> {
     left: NonNull<AVLTree<K, V>>,
     right: NonNull<AVLTree<K, V>>,
     height_m: usize,
+}
+
+impl<K, V> Node<K, V> {
+    fn reset_height(&mut self) {
+        unsafe {
+            self.height_m =
+                1 + std::cmp::max(self.left.as_ref().height(), self.right.as_ref().height())
+        }
+    }
+
+    fn balance(&self) -> isize {
+        unsafe { (self.right.as_ref().height() as isize) - (self.left.as_ref().height() as isize) }
+    }
 }
 
 #[cfg(test)]
