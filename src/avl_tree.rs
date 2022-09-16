@@ -51,10 +51,9 @@ impl<K, V> AVLTree<K, V> {
     pub fn update_height(&mut self) {
         match self {
             AVLTree::Node(node) => node.update_height(),
-            AVLTree::Nil => panic!("Can't update a nil node"),
+            AVLTree::Nil => {}
         }
     }
-    
 }
 
 impl<K, V> AVLTree<K, V>
@@ -319,6 +318,15 @@ mod tests {
         }
     }
 
+    impl<K> AVLTree<K, K>
+    where
+        K: Ord + Copy,
+    {
+        fn insert_same(&mut self, k: K) {
+            self.insert(k, k)
+        }
+    }
+
     fn test_insertion_balance(input: Vec<i32>) {
         let mut tree = AVLTree::<i32, i32>::new();
         for i in input.iter() {
@@ -339,14 +347,14 @@ mod tests {
     }
 
     #[test]
-    fn rotat_right() {
+    fn rotate_right() {
         test_insertion_balance(vec![10, 5, 0]);
         test_insertion_balance(vec![15, 10, 20, 5, 0]);
         test_insertion_balance(vec![15, 10, 20, 5, 12, 0]);
     }
 
     #[test]
-    fn rotat_left() {
+    fn rotate_left() {
         test_insertion_balance(vec![0, 5, 10]);
         test_insertion_balance(vec![15, 10, 20, 25, 30]);
         test_insertion_balance(vec![15, 10, 20, 18, 25, 30]);
@@ -354,12 +362,12 @@ mod tests {
     }
 
     #[test]
-    fn rotat_right_left() {
+    fn rotate_right_left() {
         test_insertion_balance(vec![15, 10, 20, 18, 25, 19]);
     }
 
     #[test]
-    fn rotat_left_right() {
+    fn rotate_left_right() {
         test_insertion_balance(vec![15, 10, 20, 5, 12, 14]);
     }
 
@@ -400,7 +408,29 @@ mod tests {
     }
 
     #[test]
-    fn prop_tree_insertion() {
+    fn remove_left_balance() {
+        let mut tree = AVLTree::new();
+        tree.insert_same(5);
+        tree.insert_same(4);
+        tree.insert_same(6);
+        tree.insert_same(7);
+        tree.remove(&4);
+        assert!(tree.balanced_internal());
+    }
+
+    #[test]
+    fn remove_right_balance() {
+        let mut tree = AVLTree::new();
+        tree.insert_same(5);
+        tree.insert_same(4);
+        tree.insert_same(3);
+        tree.insert_same(6);
+        tree.remove(&6);
+        assert!(tree.balanced_internal());
+    }
+
+    #[test]
+    fn prop_insertion() {
         fn p(input: HashSet<i32>) -> bool {
             let mut tree = AVLTree::new();
             for i in input.iter() {
@@ -412,13 +442,31 @@ mod tests {
     }
 
     #[test]
-    fn prop_tree_balance() {
+    fn prop_balance() {
         fn p(input: HashSet<i32>) -> bool {
             let mut tree = AVLTree::new();
             for i in input.iter() {
                 tree.insert(*i, *i);
             }
             tree.balanced_internal()
+        }
+        quickcheck(p as fn(HashSet<i32>) -> bool)
+    }
+
+    #[test]
+    fn prop_removal() {
+        fn p(input: HashSet<i32>) -> bool {
+            let seq = input.into_iter().collect::<Vec<_>>();
+            let mut tree = AVLTree::new();
+            for i in seq.iter() {
+                tree.insert(*i, *i);
+            }
+            let mut balanced = true;
+            for i in seq.iter() {
+                assert_eq!(tree.remove(i), Some(*i));
+                balanced = balanced && tree.balanced_internal();
+            }
+            balanced
         }
         quickcheck(p as fn(HashSet<i32>) -> bool)
     }
