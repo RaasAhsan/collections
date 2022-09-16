@@ -22,7 +22,7 @@ impl<K, V> AVLTree<K, V> {
 
     fn take_value(&mut self) -> Option<V> {
         match self {
-            AVLTree::Node(node) => Some(node.value.take().unwrap()),
+            AVLTree::Node(node) => Some(node.entry.value.take().unwrap()),
             AVLTree::Nil => None,
         }
     }
@@ -56,8 +56,8 @@ where
     pub fn get(&self, k: &K) -> Option<&V> {
         match self {
             AVLTree::Node(node) => unsafe {
-                match k.cmp(&node.key) {
-                    Ordering::Equal => Some(node.value.as_ref().unwrap()),
+                match k.cmp(&node.entry.key) {
+                    Ordering::Equal => Some(node.entry.value.as_ref().unwrap()),
                     Ordering::Less => node.left.as_ref().get(k),
                     Ordering::Greater => node.right.as_ref().get(k),
                 }
@@ -70,7 +70,7 @@ where
         unsafe {
             match self {
                 AVLTree::Node(node) => {
-                    match k.cmp(&node.key) {
+                    match k.cmp(&node.entry.key) {
                         Ordering::Less => node.left.as_mut().insert(k, v),
                         Ordering::Greater => node.right.as_mut().insert(k, v),
                         Ordering::Equal => {}
@@ -81,8 +81,7 @@ where
                 }
                 AVLTree::Nil => {
                     let node = Node {
-                        key: k,
-                        value: Some(v),
+                        entry: Entry::new(k, v),
                         left: NonNull::new_unchecked(Box::into_raw(Box::new(
                             AVLTree::<K, V>::new(),
                         ))),
@@ -100,7 +99,7 @@ where
     pub fn remove(&mut self, k: &K) -> Option<V> {
         match self {
             AVLTree::Node(node) => unsafe {
-                match k.cmp(&node.key) {
+                match k.cmp(&node.entry.key) {
                     Ordering::Less => node.left.as_mut().remove(k),
                     Ordering::Greater => node.right.as_mut().remove(k),
                     Ordering::Equal => {
@@ -108,12 +107,8 @@ where
                             let replace_right = replace.node_mut().unwrap().right.as_mut();
                             std::mem::swap(replace, replace_right);
                             std::mem::swap(
-                                &mut node.key,
-                                &mut replace_right.node_mut().unwrap().key,
-                            );
-                            std::mem::swap(
-                                &mut node.value,
-                                &mut replace_right.node_mut().unwrap().value,
+                                &mut node.entry,
+                                &mut replace_right.node_mut().unwrap().entry,
                             );
                             Some(replace_right.take_value().unwrap())
                         } else {
@@ -218,11 +213,22 @@ impl<K, V> Drop for AVLTree<K, V> {
 
 #[derive(Debug)]
 pub struct Node<K, V> {
-    key: K,
-    value: Option<V>,
+    entry: Entry<K, V>,
     left: NonNull<AVLTree<K, V>>,
     right: NonNull<AVLTree<K, V>>,
     height_m: usize,
+}
+
+#[derive(Debug)]
+pub struct Entry<K, V> {
+    key: K,
+    value: Option<V>
+}
+
+impl<K, V> Entry<K, V> {
+    pub fn new(key: K, value: V) -> Self {
+        Entry { key, value: Some(value) }
+    }
 }
 
 impl<K, V> Node<K, V> {
