@@ -105,45 +105,30 @@ where
     pub fn remove(&mut self, k: &K) -> Option<V> {
         match self {
             AVLTree::Node(node) => unsafe {
-                match k.cmp(&node.entry.key) {
-                    Ordering::Less => {
-                        let out = node.left.as_mut().remove(k);
-                        self.update_height();
-                        self.rebalance();
-                        out
-                    }
-                    Ordering::Greater => {
-                        let out = node.right.as_mut().remove(k);
-                        self.update_height();
-                        self.rebalance();
-                        out
-                    }
+                let out = match k.cmp(&node.entry.key) {
+                    Ordering::Less => node.left.as_mut().remove(k),
+                    Ordering::Greater => node.right.as_mut().remove(k),
                     Ordering::Equal => {
                         let right = node.right.as_mut();
                         if !right.is_nil() {
-                            let out = right.promote_leftmost(self);
-                            self.update_height();
-                            self.rebalance();
-                            Some(out)
+                            Some(right.delete_promote_leftmost(self))
                         } else {
                             let mut replace = std::mem::take(node.left.as_mut());
                             std::mem::swap(self, &mut replace);
-                            self.update_height();
-                            self.rebalance();
                             Some(replace.take_value().unwrap())
                         }
                     }
-                }
+                };
+
+                self.update_height();
+                self.rebalance();
+                out
             },
             AVLTree::Nil => None,
         }
     }
 
-    // TODO: we need to adjust this because the height change will cascade up.
-    // I think we should perform the removal here so we can bubble the reset up
-    // accordingly balance
-    // promote_leftmose
-    fn promote_leftmost(&mut self, target: &mut AVLTree<K, V>) -> V {
+    fn delete_promote_leftmost(&mut self, target: &mut AVLTree<K, V>) -> V {
         match self {
             AVLTree::Node(node) => unsafe {
                 let out = if node.left.as_ref().is_nil() {
@@ -154,11 +139,11 @@ where
                         &mut target.node_mut().unwrap().entry,
                     );
                     replace.node_mut().unwrap().entry.value.take().unwrap()
+                    // Technically we don't need to update the height here because it doesn't change
                 } else {
-                    let out = node.left.as_mut().promote_leftmost(target);
-                    self.update_height();
-                    out
+                    node.left.as_mut().delete_promote_leftmost(target)
                 };
+                self.update_height();
                 self.rebalance();
                 out
             },
@@ -423,8 +408,8 @@ mod tests {
         let mut tree = AVLTree::new();
         tree.insert_same(5);
         tree.insert_same(4);
-        tree.insert_same(3);
         tree.insert_same(6);
+        tree.insert_same(3);
         tree.remove(&6);
         assert!(tree.balanced_internal());
     }
