@@ -76,7 +76,6 @@ where
                         Ordering::Equal => {}
                     }
                     node.update_height();
-
                     self.rebalance();
                 }
                 AVLTree::Nil => {
@@ -100,20 +99,30 @@ where
         match self {
             AVLTree::Node(node) => unsafe {
                 match k.cmp(&node.entry.key) {
-                    Ordering::Less => node.left.as_mut().remove(k),
-                    Ordering::Greater => node.right.as_mut().remove(k),
+                    Ordering::Less => {
+                        let out = node.left.as_mut().remove(k);
+                        node.update_height();
+                        self.rebalance();
+                        out
+                    }
+                    Ordering::Greater => {
+                        let out = node.right.as_mut().remove(k);
+                        node.update_height();
+                        self.rebalance();
+                        out
+                    }
                     Ordering::Equal => {
-                        if let Some(replace) = node.right.as_mut().leftmost_mut() {
-                            let replace_right = replace.node_mut().unwrap().right.as_mut();
-                            std::mem::swap(replace, replace_right);
-                            std::mem::swap(
-                                &mut node.entry,
-                                &mut replace_right.node_mut().unwrap().entry,
-                            );
-                            Some(replace_right.take_value().unwrap())
+                        let right = node.right.as_mut();
+                        if !right.is_nil() {
+                            let out = right.promote_leftmost(self);
+                            self.node_mut().unwrap().update_height();
+                            self.rebalance();
+                            Some(out)
                         } else {
                             let mut replace = std::mem::take(node.left.as_mut());
                             std::mem::swap(self, &mut replace);
+                            self.node_mut().unwrap().update_height();
+                            self.rebalance();
                             Some(replace.take_value().unwrap())
                         }
                     }
@@ -123,16 +132,30 @@ where
         }
     }
 
-    fn leftmost_mut(&mut self) -> Option<&mut AVLTree<K, V>> {
+    // TODO: we need to adjust this because the height change will cascade up.
+    // I think we should perform the removal here so we can bubble the reset up
+    // accordingly balance
+    // promote_leftmose
+    fn promote_leftmost(&mut self, target: &mut AVLTree<K, V>) -> V {
         match self {
             AVLTree::Node(node) => unsafe {
-                if node.left.as_ref().is_nil() {
-                    Some(self)
+                let out = if node.left.as_ref().is_nil() {
+                    let replace = node.right.as_mut();
+                    std::mem::swap(replace, self);
+                    std::mem::swap(
+                        &mut replace.node_mut().unwrap().entry,
+                        &mut target.node_mut().unwrap().entry,
+                    );
+                    replace.node_mut().unwrap().entry.value.take().unwrap()
                 } else {
-                    node.left.as_mut().leftmost_mut()
-                }
+                    let out = node.left.as_mut().promote_leftmost(target);
+                    node.update_height();
+                    out
+                };
+                self.rebalance();
+                out
             },
-            AVLTree::Nil => None,
+            AVLTree::Nil => panic!("should never be called"),
         }
     }
 
@@ -222,12 +245,15 @@ pub struct Node<K, V> {
 #[derive(Debug)]
 pub struct Entry<K, V> {
     key: K,
-    value: Option<V>
+    value: Option<V>,
 }
 
 impl<K, V> Entry<K, V> {
     pub fn new(key: K, value: V) -> Self {
-        Entry { key, value: Some(value) }
+        Entry {
+            key,
+            value: Some(value),
+        }
     }
 }
 
