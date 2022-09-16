@@ -47,6 +47,14 @@ impl<K, V> AVLTree<K, V> {
             AVLTree::Nil => 0,
         }
     }
+
+    pub fn update_height(&mut self) {
+        match self {
+            AVLTree::Node(node) => node.update_height(),
+            AVLTree::Nil => panic!("Can't update a nil node"),
+        }
+    }
+    
 }
 
 impl<K, V> AVLTree<K, V>
@@ -75,7 +83,7 @@ where
                         Ordering::Greater => node.right.as_mut().insert(k, v),
                         Ordering::Equal => {}
                     }
-                    node.update_height();
+                    self.update_height();
                     self.rebalance();
                 }
                 AVLTree::Nil => {
@@ -101,13 +109,13 @@ where
                 match k.cmp(&node.entry.key) {
                     Ordering::Less => {
                         let out = node.left.as_mut().remove(k);
-                        node.update_height();
+                        self.update_height();
                         self.rebalance();
                         out
                     }
                     Ordering::Greater => {
                         let out = node.right.as_mut().remove(k);
-                        node.update_height();
+                        self.update_height();
                         self.rebalance();
                         out
                     }
@@ -115,13 +123,13 @@ where
                         let right = node.right.as_mut();
                         if !right.is_nil() {
                             let out = right.promote_leftmost(self);
-                            self.node_mut().unwrap().update_height();
+                            self.update_height();
                             self.rebalance();
                             Some(out)
                         } else {
                             let mut replace = std::mem::take(node.left.as_mut());
                             std::mem::swap(self, &mut replace);
-                            self.node_mut().unwrap().update_height();
+                            self.update_height();
                             self.rebalance();
                             Some(replace.take_value().unwrap())
                         }
@@ -149,7 +157,7 @@ where
                     replace.node_mut().unwrap().entry.value.take().unwrap()
                 } else {
                     let out = node.left.as_mut().promote_leftmost(target);
-                    node.update_height();
+                    self.update_height();
                     out
                 };
                 self.rebalance();
