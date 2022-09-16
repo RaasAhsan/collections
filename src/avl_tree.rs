@@ -13,6 +13,20 @@ impl<K, V> AVLTree<K, V> {
         Self::Nil
     }
 
+    fn is_nil(&self) -> bool {
+        match self {
+            AVLTree::Node(_) => false,
+            AVLTree::Nil => true,
+        }
+    }
+
+    fn take_value(&mut self) -> Option<V> {
+        match self {
+            AVLTree::Node(node) => Some(node.value.take().unwrap()),
+            AVLTree::Nil => None,
+        }
+    }
+
     fn node_mut(&mut self) -> Option<&mut Node<K, V>> {
         match self {
             AVLTree::Node(node) => Some(node),
@@ -37,13 +51,13 @@ impl<K, V> AVLTree<K, V> {
 
 impl<K, V> AVLTree<K, V>
 where
-    K: Ord + Copy,
+    K: Ord,
 {
     pub fn get(&self, k: &K) -> Option<&V> {
         match self {
             AVLTree::Node(node) => unsafe {
                 match k.cmp(&node.key) {
-                    Ordering::Equal => Some(&node.value),
+                    Ordering::Equal => Some(node.value.as_ref().unwrap()),
                     Ordering::Less => node.left.as_ref().get(k),
                     Ordering::Greater => node.right.as_ref().get(k),
                 }
@@ -68,7 +82,7 @@ where
                 AVLTree::Nil => {
                     let node = Node {
                         key: k,
-                        value: v,
+                        value: Some(v),
                         left: NonNull::new_unchecked(Box::into_raw(Box::new(
                             AVLTree::<K, V>::new(),
                         ))),
@@ -80,6 +94,50 @@ where
                     *self = AVLTree::Node(node);
                 }
             }
+        }
+    }
+
+    pub fn remove(&mut self, k: &K) -> Option<V> {
+        match self {
+            AVLTree::Node(node) => unsafe {
+                match k.cmp(&node.key) {
+                    Ordering::Less => node.left.as_mut().remove(k),
+                    Ordering::Greater => node.right.as_mut().remove(k),
+                    Ordering::Equal => {
+                        if let Some(replace) = node.right.as_mut().leftmost_mut() {
+                            let replace_right = replace.node_mut().unwrap().right.as_mut();
+                            std::mem::swap(replace, replace_right);
+                            std::mem::swap(
+                                &mut node.key,
+                                &mut replace_right.node_mut().unwrap().key,
+                            );
+                            std::mem::swap(
+                                &mut node.value,
+                                &mut replace_right.node_mut().unwrap().value,
+                            );
+                            Some(replace_right.take_value().unwrap())
+                        } else {
+                            let mut replace = std::mem::take(node.left.as_mut());
+                            std::mem::swap(self, &mut replace);
+                            Some(replace.take_value().unwrap())
+                        }
+                    }
+                }
+            },
+            AVLTree::Nil => None,
+        }
+    }
+
+    fn leftmost_mut(&mut self) -> Option<&mut AVLTree<K, V>> {
+        match self {
+            AVLTree::Node(node) => unsafe {
+                if node.left.as_ref().is_nil() {
+                    Some(self)
+                } else {
+                    None
+                }
+            },
+            AVLTree::Nil => None,
         }
     }
 
@@ -124,6 +182,9 @@ where
     }
 }
 
+/// Performs a left or right rotation.
+/// Given a parent, child, and grandchild, perform a rotation
+/// such that the parent and child swap positions and exchange the grandchild.
 fn rotate<K, V>(
     parent: &mut AVLTree<K, V>,
     child: &mut AVLTree<K, V>,
@@ -158,7 +219,7 @@ impl<K, V> Drop for AVLTree<K, V> {
 #[derive(Debug)]
 pub struct Node<K, V> {
     key: K,
-    value: V,
+    value: Option<V>,
     left: NonNull<AVLTree<K, V>>,
     right: NonNull<AVLTree<K, V>>,
     height_m: usize,
@@ -260,6 +321,28 @@ mod tests {
     #[test]
     fn left_right_rotation() {
         test_insertion_balance(vec![15, 10, 20, 5, 12, 14]);
+    }
+
+    #[test]
+    fn remove_left() {
+        let mut tree = AVLTree::new();
+        tree.insert(5, 5);
+        tree.insert(2, 2);
+        assert_eq!(tree.remove(&5), Some(5));
+        assert_eq!(tree.get(&5), None);
+        assert_eq!(tree.get(&2), Some(&2));
+    }
+
+    #[test]
+    fn remove_right() {
+        let mut tree = AVLTree::new();
+        tree.insert(5, 5);
+        tree.insert(2, 2);
+        tree.insert(7, 7);
+        assert_eq!(tree.remove(&5), Some(5));
+        assert_eq!(tree.get(&5), None);
+        assert_eq!(tree.get(&2), Some(&2));
+        assert_eq!(tree.get(&7), Some(&7));
     }
 
     #[test]
