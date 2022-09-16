@@ -134,7 +134,7 @@ where
                 if node.left.as_ref().is_nil() {
                     Some(self)
                 } else {
-                    None
+                    node.left.as_mut().leftmost_mut()
                 }
             },
             AVLTree::Nil => None,
@@ -299,14 +299,14 @@ mod tests {
     }
 
     #[test]
-    fn right_rotation() {
+    fn rotat_right() {
         test_insertion_balance(vec![10, 5, 0]);
         test_insertion_balance(vec![15, 10, 20, 5, 0]);
         test_insertion_balance(vec![15, 10, 20, 5, 12, 0]);
     }
 
     #[test]
-    fn left_rotation() {
+    fn rotat_left() {
         test_insertion_balance(vec![0, 5, 10]);
         test_insertion_balance(vec![15, 10, 20, 25, 30]);
         test_insertion_balance(vec![15, 10, 20, 18, 25, 30]);
@@ -314,12 +314,12 @@ mod tests {
     }
 
     #[test]
-    fn right_left_rotation() {
+    fn rotat_right_left() {
         test_insertion_balance(vec![15, 10, 20, 18, 25, 19]);
     }
 
     #[test]
-    fn left_right_rotation() {
+    fn rotat_left_right() {
         test_insertion_balance(vec![15, 10, 20, 5, 12, 14]);
     }
 
@@ -341,6 +341,20 @@ mod tests {
         tree.insert(7, 7);
         assert_eq!(tree.remove(&5), Some(5));
         assert_eq!(tree.get(&5), None);
+        assert_eq!(tree.get(&2), Some(&2));
+        assert_eq!(tree.get(&7), Some(&7));
+    }
+
+    #[test]
+    fn remove_right_leftmost() {
+        let mut tree = AVLTree::new();
+        tree.insert(5, 5);
+        tree.insert(2, 2);
+        tree.insert(7, 7);
+        tree.insert(6, 6);
+        assert_eq!(tree.remove(&5), Some(5));
+        assert_eq!(tree.get(&5), None);
+        assert_eq!(tree.get(&6), Some(&6));
         assert_eq!(tree.get(&2), Some(&2));
         assert_eq!(tree.get(&7), Some(&7));
     }
