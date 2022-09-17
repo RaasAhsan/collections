@@ -57,11 +57,11 @@ where
         }
         let new_handle = self.list.push_head(k.clone());
         self.recent.insert(k.clone(), new_handle);
-        self.entries.get(&k)
+        self.entries.get(k)
     }
 
     pub fn get_mut(&mut self, k: &K) -> Option<&mut V> {
-        self.entries.get_mut(&k)
+        self.entries.get_mut(k)
     }
 }
 

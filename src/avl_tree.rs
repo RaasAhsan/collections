@@ -190,6 +190,38 @@ where
         let grandchild = child.node_mut().unwrap().left.as_mut();
         rotate(self, child, grandchild);
     }
+
+    pub fn first(&self) -> Option<&K> {
+        match self {
+            AVLTree::Node(node) => {
+                let left = node.left_node();
+                if left.is_nil() {
+                    Some(&node.entry.key)
+                } else {
+                    left.first()
+                }
+            }
+            AVLTree::Nil => None,
+        }
+    }
+
+    pub fn last(&self) -> Option<&K> {
+        match self {
+            AVLTree::Node(node) => {
+                let right = node.right_node();
+                if right.is_nil() {
+                    Some(&node.entry.key)
+                } else {
+                    right.last()
+                }
+            }
+            AVLTree::Nil => None,
+        }
+    }
+
+    // pub fn iter() -> Iter<_, K, V> {
+
+    // }
 }
 
 /// Performs a left or right rotation.
@@ -234,6 +266,27 @@ pub struct Node<K, V> {
     height_m: usize,
 }
 
+impl<K, V> Node<K, V> {
+    fn update_height(&mut self) {
+        unsafe {
+            self.height_m =
+                1 + std::cmp::max(self.left.as_ref().height(), self.right.as_ref().height())
+        }
+    }
+
+    fn balance(&self) -> isize {
+        unsafe { (self.right.as_ref().height() as isize) - (self.left.as_ref().height() as isize) }
+    }
+
+    fn left_node(&self) -> &AVLTree<K, V> {
+        unsafe { self.left.as_ref() }
+    }
+
+    fn right_node(&self) -> &AVLTree<K, V> {
+        unsafe { self.right.as_ref() }
+    }
+}
+
 #[derive(Debug)]
 pub struct Entry<K, V> {
     key: K,
@@ -246,19 +299,6 @@ impl<K, V> Entry<K, V> {
             key,
             value: Some(value),
         }
-    }
-}
-
-impl<K, V> Node<K, V> {
-    fn update_height(&mut self) {
-        unsafe {
-            self.height_m =
-                1 + std::cmp::max(self.left.as_ref().height(), self.right.as_ref().height())
-        }
-    }
-
-    fn balance(&self) -> isize {
-        unsafe { (self.right.as_ref().height() as isize) - (self.left.as_ref().height() as isize) }
     }
 }
 
@@ -412,6 +452,17 @@ mod tests {
         tree.insert_same(3);
         tree.remove(&6);
         assert!(tree.balanced_internal());
+    }
+
+    #[test]
+    fn first_last() {
+        let mut tree = AVLTree::new();
+        tree.insert_same(5);
+        tree.insert_same(4);
+        tree.insert_same(6);
+        tree.insert_same(3);
+        assert_eq!(tree.first(), Some(&3));
+        assert_eq!(tree.last(), Some(&6));
     }
 
     #[test]

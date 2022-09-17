@@ -11,7 +11,13 @@ pub struct HashTrie<K, V> {
 
 impl<K, V> HashTrie<K, V> {
     pub fn new() -> Self {
-        HashTrie {
+        HashTrie::default()
+    }
+}
+
+impl<K, V> Default for HashTrie<K, V> {
+    fn default() -> Self {
+        Self {
             key: vec![],
             value: None,
             children: HashMap::new(),

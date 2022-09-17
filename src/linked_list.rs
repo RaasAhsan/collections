@@ -1,12 +1,11 @@
 use std::{
     borrow::{Borrow, BorrowMut},
-    cell::{Ref, RefCell},
-    ops::Deref,
+    cell::RefCell,
     rc::{Rc, Weak},
 };
 
 /// A doubly linked list which support constant time head insertion, tail deletion, and random deletion.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct LinkedList<A> {
     head: Option<Rc<Node<A>>>,
     tail: Option<Rc<Node<A>>>,

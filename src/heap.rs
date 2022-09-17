@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::VecDeque};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct Heap<A> {
     inner: VecDeque<A>,
 }
